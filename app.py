@@ -1,20 +1,42 @@
-from flask import Flask
+from flask import Flask, request, jsonify
+from env import DataCleanEnv
 
 app = Flask(__name__)
 
+env = None
+
 @app.route("/")
 def home():
-    try:
-        result = {
-            "easy": 1.0,
-            "medium": 1.0,
-            "hard": 1.0
-        }
+    return "OpenEnv is running"
 
-        return str(result)
 
-    except Exception as e:
-        return f"Error: {str(e)}"
+@app.route("/reset", methods=["POST"])
+def reset():
+    global env
+    data = request.json
+    task = data.get("task_type", "easy")
+
+    env = DataCleanEnv(task)
+    obs = env.reset()
+
+    return jsonify({
+        "observation": str(obs)
+    })
+
+
+@app.route("/step", methods=["POST"])
+def step():
+    global env
+    data = request.json
+    action = data.get("action")
+
+    obs, reward, done, _ = env.step(action)
+
+    return jsonify({
+        "observation": str(obs),
+        "reward": reward,
+        "done": done
+    })
 
 
 if __name__ == "__main__":
