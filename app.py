@@ -5,6 +5,7 @@ app = Flask(__name__)
 
 env = None
 
+
 @app.route("/")
 def home():
     return "OpenEnv is running"
@@ -13,30 +14,45 @@ def home():
 @app.route("/reset", methods=["POST"])
 def reset():
     global env
-    data = request.json
-    task = data.get("task_type", "easy")
 
-    env = DataCleanEnv(task)
-    obs = env.reset()
+    try:
+        data = request.get_json(force=True)  # Fix for 415 error
 
-    return jsonify({
-        "observation": str(obs)
-    })
+        task = data.get("task_type", "easy")
+
+        env = DataCleanEnv(task)
+        obs = env.reset()
+
+        return jsonify({
+            "observation": str(obs)
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/step", methods=["POST"])
 def step():
     global env
-    data = request.json
-    action = data.get("action")
 
-    obs, reward, done, _ = env.step(action)
+    try:
+        data = request.get_json(force=True)  # Fix for 415 error
 
-    return jsonify({
-        "observation": str(obs),
-        "reward": reward,
-        "done": done
-    })
+        action = data.get("action")
+
+        if env is None:
+            return jsonify({"error": "Environment not initialized"}), 400
+
+        obs, reward, done, _ = env.step(action)
+
+        return jsonify({
+            "observation": str(obs),
+            "reward": reward,
+            "done": done
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
